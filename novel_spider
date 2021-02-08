@@ -1,0 +1,89 @@
+# -*- coding:utf-8 -*-
+import requests,sys
+from bs4 import BeautifulSoup
+import time
+import random
+
+
+class downloader (object):
+
+    """
+    类说明:
+        __init__即构造方法，用来设置初始值。self 是参数
+    """
+    def __init__(self):
+        self.names = []           #存放章节名
+        self.urls = []            #存放章节链接
+        self.nums = ()            #章节数
+
+        # str2 = input("请输入首页网址：")
+        # self.target = 'str2'
+        self.target = 'https://www.biquge5200.cc/84_84888/'
+
+    """
+    类说明: 获取 url 地址
+    Parameters:  无
+    Returns:     无      
+    """
+
+    def get_url(self):
+        req = requests.get(url =self.target)
+        html = req.text
+        div_bf = BeautifulSoup(html,'lxml')
+        div = div_bf.find_all('div', id='list')
+        a_bf = BeautifulSoup(str(div[0]),'lxml')
+        a = a_bf.find_all('a')
+        self.nums = len(a)
+        for each in a:
+            # print(each.string, each.get('href'))
+            self.names.append (each.string)
+            self.urls.append (each.string + ','+ each.get('href'))
+
+    """
+    类说明: 解析章节内容，并处理
+    Parameters:  target - 下载连接(string)
+    Returns:     texts - 章节内容(string)      
+    """
+
+    def get_content (self,targer):
+        header = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                          'AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Chrome/61.0.3163.79 Safari/537.36'
+        }
+        content = requests.get(url = targer,headers=header)
+        # content = content.encode ('iso-8859-1')
+        html = content.text
+        bf = BeautifulSoup(html,'lxml')
+        text = bf.find_all(id = 'content')
+        texts = text[0].text.replace('</p><p>'*2,'\n')
+        return texts
+
+    """
+    类说明: 写入爬取文件
+    Parameters:  
+        name - 章节名称(string)
+        path - 当前路径下,小说保存名称(string)
+        texts - 章节内容(string)
+    Returns:          
+    """
+
+    def write_in (self,name,path,texts):
+        write_flag = True
+        # with open('超品巫师'+'.txt',encoding='utf-8')as f:
+        with open(path, 'a',encoding = 'utf-8') as f:     # 释放资源 见 http://c.biancheng.net/view/4817.html
+            f.write(name + '\n')                          # ‘a’表示追加到文件
+            f.writelines(texts)
+            f.write('\n\n')
+
+if __name__ == "__main__":
+    dl = downloader ()
+    dl.get_url()
+    print('The page is loading, please wait...')
+    for i in range(dl.nums):
+        dl.write_in(dl.names[i],'未命名.txt',dl.get_content(dl.urls[i].split(',')[-1]))
+        sys.stdout.write ("  已下载:%.3f%%" %  float(i/dl.nums) + '\r')
+        # sys.stdout.flush()
+        time.sleep(random.randint(0, 3))
+    print('Mission completed')
+
